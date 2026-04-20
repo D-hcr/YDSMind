@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useWordStore, type WordEntry, type WordLevel } from '../store/useWordStore';
+import Flashcard from './Flashcard';
 
 const levels: Array<WordLevel> = ['İyi', 'Orta', 'Bilmiyorum'];
 
@@ -68,45 +69,21 @@ export default function FlashcardManager() {
             Henüz kelime eklenmedi. Gerçek YDS/YÖKDİL kelimeleri ekleyerek AI üretimini güçlendirin.
           </div>
         ) : (
-          <div className="grid gap-4">
-            {words.map((word) => (
-              <article key={word.id} className="rounded-3xl border border-slate-800 p-5 bg-slate-950">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-xl font-semibold text-white">{word.english}</p>
-                    <p className="text-slate-400">{word.turkish}</p>
-                    {word.sentence ? <p className="mt-2 text-sm text-slate-500">"{word.sentence}"</p> : null}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-slate-800 px-3 py-1 text-xs uppercase tracking-[0.15em] text-slate-300">{word.level}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeWord(word.id)}
-                      className="rounded-2xl bg-slate-800 px-3 py-2 text-sm text-slate-300 transition hover:bg-slate-700"
-                    >
-                      Sil
-                    </button>
-                  </div>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {levels.map((levelOption) => (
-                    <button
-                      key={levelOption}
-                      type="button"
-                      onClick={() => updateLevel(word.id, levelOption)}
-                      className={`rounded-full px-3 py-1 text-sm transition ${
-                        word.level === levelOption
-                          ? 'bg-cyan-500 text-slate-950'
-                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                      }`}
-                    >
-                      {levelOption}
-                    </button>
-                  ))}
-                </div>
-              </article>
-            ))}
-          </div>
+          <>
+            <div className="text-sm text-slate-400 mb-6">
+              📊 {words.filter((w) => w.level === 'İyi').length} İyi | {words.filter((w) => w.level === 'Orta').length} Orta | {words.filter((w) => w.level === 'Bilmiyorum').length} Bilmiyorum
+            </div>
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {words.map((word) => (
+                <Flashcard
+                  key={word.id}
+                  word={word}
+                  onUpdateLevel={updateLevel}
+                  onRemove={removeWord}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
     </section>

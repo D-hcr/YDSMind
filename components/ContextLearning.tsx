@@ -6,7 +6,7 @@ import { useWordStore } from '../store/useWordStore';
 export default function ContextLearning() {
   const { words, addQuestion } = useWordStore();
   const [selectedId, setSelectedId] = useState<string>('');
-  const [quiz, setQuiz] = useState<{ question: string; options: string[]; answer: string; explanation?: string } | null>(null);
+  const [quiz, setQuiz] = useState<{ question: string; options: { A: string; B: string; C: string; D: string; E: string }; answer: string; explanation?: string; targetWord?: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,8 +23,7 @@ export default function ContextLearning() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          examType: 'YDS',
-          topicId: 'cümle',
+          module: 'context',
           words: [selectedWord],
         }),
       });
@@ -34,15 +33,11 @@ export default function ContextLearning() {
         throw new Error(data.error || 'Üretim sırasında hata oluştu.');
       }
 
-      let parsed: { question: string; options: string[]; answer: string; explanation?: string } | null = null;
-      try {
-        console.log('Parsing context response:', data.raw);
-        parsed = JSON.parse(data.raw) as { question: string; options: string[]; answer: string; explanation?: string };
-      } catch (parseError) {
-        console.error('JSON Parse Error in ContextLearning:', parseError);
-        console.error('Data received:', data.raw);
-        throw new Error(`AI yanıtı JSON formatında değil: ${data.raw?.substring(0, 100)}`);
+      if (!data.success || !data.data) {
+        throw new Error('API geçersiz bir response döndürdü');
       }
+
+      const parsed = data.data as { question: string; options: { A: string; B: string; C: string; D: string; E: string }; answer: string; explanation?: string; targetWord?: string };
 
       if (!parsed.question || !parsed.options || !parsed.answer) {
         throw new Error('AI yanıtında gerekli alanlar eksik');
@@ -50,12 +45,17 @@ export default function ContextLearning() {
 
       setQuiz(parsed);
       addQuestion({
+        id: `q_${Date.now()}`,
+        module: 'context',
         examType: 'YDS',
-        topicId: 'cümle',
+        topicId: 'cümle' as any,
         question: parsed.question,
         options: parsed.options,
-        answer: parsed.answer,
+        answer: parsed.answer as 'A' | 'B' | 'C' | 'D' | 'E',
         explanation: parsed.explanation ?? 'Açıklama sağlanmadı.',
+        isAnswered: false,
+        createdAt: new Date().toISOString(),
+        targetWord: parsed.targetWord,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Bilinmeyen hata.');
@@ -108,9 +108,9 @@ export default function ContextLearning() {
         <article className="rounded-3xl border border-slate-800 bg-slate-950 p-6">
           <h3 className="text-lg font-semibold">{quiz.question}</h3>
           <div className="mt-4 grid gap-3">
-            {quiz.options.map((text, index) => (
-              <div key={index} className="rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-slate-200">
-                <span className="font-semibold text-cyan-300">{String.fromCharCode(65 + index)}.</span> {text}
+            {(['A', 'B', 'C', 'D', 'E'] as const).map((letter) => (
+              <div key={letter} className="rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-slate-200">
+                <span className="font-semibold text-cyan-300">{letter}.</span> {quiz.options[letter]}
               </div>
             ))}
           </div>

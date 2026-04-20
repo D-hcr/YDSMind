@@ -1,10 +1,16 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import FlashcardManager from '../components/FlashcardManager';
 import ExamSimulator from '../components/ExamSimulator';
 import ContextLearning from '../components/ContextLearning';
-import { moduleDefinitions } from '../lib/prompt';
+import { migrateStorageV2 } from '@/lib/migrations/migrationv2';
+
+const moduleDefinitions = {
+  flashcard: 'Kelime Ezberleme',
+  exam: 'Sınav Simülasyonu',
+  context: 'Bağlam İçinde Öğrenme',
+};
 
 const tabs = [
   { id: 'flashcard', title: moduleDefinitions.flashcard },
@@ -14,6 +20,11 @@ const tabs = [
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<typeof tabs[number]['id']>('flashcard');
+
+  // Run migration on mount
+  useEffect(() => {
+    migrateStorageV2();
+  }, []);
 
   const activeComponent = useMemo(() => {
     if (activeTab === 'flashcard') return <FlashcardManager />;

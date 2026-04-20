@@ -2,22 +2,31 @@
 
 import { useMemo, useState } from 'react';
 import { useWordStore } from '../store/useWordStore';
-import { examTopics } from '../lib/prompt';
+import { examTopics } from '@/lib/constants';
+import QuestionDetailModal from './QuestionDetailModal';
+import type { QuestionData } from '@/lib/types/question';
 
 type QuestionResult = {
   question: string;
-  options: string[];
+  options: {
+    A: string;
+    B: string;
+    C: string;
+    D: string;
+    E: string;
+  };
   answer: string;
   explanation: string;
 };
 
 export default function ExamSimulator() {
-  const { selectedExam, selectedTopic, setExam, setTopic, words, questions, addQuestion, removeQuestion, clearQuestions } = useWordStore();
+  const { selectedExam, selectedTopic, setExam, setTopic, words, addQuestion, getLastGeneratedQuestionTexts, getRecentAnswers, allQuestions, removeQuestion, clearHistory } = useWordStore();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<QuestionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [historyFilterExam, setHistoryFilterExam] = useState<'Tümü' | 'YDS' | 'YÖKDİL'>('Tümü');
   const [historyFilterTopic, setHistoryFilterTopic] = useState<string>('Tümü');
+  const [selectedQuestion, setSelectedQuestion] = useState<QuestionData | null>(null);
 
   const topics = examTopics[selectedExam];
 
@@ -26,7 +35,7 @@ export default function ExamSimulator() {
     [selectedTopic, topics]
   );
 
-  const filteredQuestions = questions.filter((item) => {
+  const filteredQuestions = allQuestions.filter((item) => {
     const examMatch = historyFilterExam === 'Tümü' || item.examType === historyFilterExam;
     const topicMatch = historyFilterTopic === 'Tümü' || item.topicId === historyFilterTopic;
     return examMatch && topicMatch;
@@ -38,10 +47,20 @@ export default function ExamSimulator() {
     setResult(null);
 
     try {
+      const previousQuestions = getLastGeneratedQuestionTexts();
+      const recentAnswers = getRecentAnswers();
+
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ examType: selectedExam, topicId: selectedTopic, words }),
+        body: JSON.stringify({
+          module: 'exam',
+          examType: selectedExam,
+          topicId: selectedTopic,
+          words,
+          previousQuestions,
+          recentAnswers,
+        }),
       });
 
       const data = await response.json();
@@ -49,22 +68,29 @@ export default function ExamSimulator() {
         throw new Error(data.error || 'Üretim sırasında hata oluştu.');
       }
 
-      let parsed: QuestionResult | null = null;
-      try {
-        console.log('Parsing response:', data.raw);
-        parsed = JSON.parse(data.raw) as QuestionResult;
-      } catch (parseError) {
-        console.error('JSON Parse Error:', parseError);
-        console.error('Data received:', data.raw);
-        throw new Error(`AI yanıtı JSON formatında değil: ${data.raw?.substring(0, 100)}`);
+      if (!data.success || !data.data) {
+        throw new Error('API geçersiz bir response döndürdü');
       }
 
+      const parsed = data.data as QuestionResult;
+
       if (!parsed.question || !parsed.options || !parsed.answer) {
-        throw new Error('AI yanıtında gerekli alanlar eksik (question, options, answer)');
+        throw new Error('AI yanıtında gerekli alanlar eksik');
       }
 
       setResult(parsed);
-      addQuestion({ examType: selectedExam, topicId: selectedTopic, ...parsed });
+      addQuestion({
+        id: `q_${Date.now()}`,
+        module: 'exam',
+        examType: selectedExam,
+        topicId: selectedTopic as any,
+        question: parsed.question,
+        options: parsed.options,
+        answer: parsed.answer as 'A' | 'B' | 'C' | 'D' | 'E',
+        explanation: parsed.explanation,
+        createdAt: new Date().toISOString(),
+        isAnswered: false,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu.');
     } finally {
@@ -132,9 +158,9 @@ export default function ExamSimulator() {
           <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">{selectedExam} {currentLabel}</p>
           <h3 className="mt-4 text-xl font-semibold">{result.question}</h3>
           <div className="mt-4 space-y-2">
-            {result.options.map((option, index) => (
-              <div key={option} className="rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-slate-200">
-                <span className="font-semibold text-cyan-300">{String.fromCharCode(65 + index)}.</span> {option}
+            {(['A', 'B', 'C', 'D', 'E'] as const).map((letter) => (
+              <div key={letter} className="rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-slate-200">
+                <span className="font-semibold text-cyan-300">{letter}.</span> {result.options[letter]}
               </div>
             ))}
           </div>
@@ -148,13 +174,14 @@ export default function ExamSimulator() {
       <div className="rounded-3xl border border-slate-700 bg-slate-950 p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">Kaydedilmiş Sorular</p>
-            <p className="mt-2 text-sm text-slate-400">Daha önce üretilmiş sorular buradan filtrelenebilir ve geri çağrılabilir.</p>
+            <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">📋 Kaydedilmiş Sorular ({filteredQuestions.length})</p>
+            <p className="mt-2 text-sm text-slate-400">Daha önce üretilmiş soruları filtreleyip görüntüleyin.</p>
           </div>
           <button
             type="button"
-            onClick={clearQuestions}
-            className="rounded-2xl bg-red-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-red-400"
+            onClick={clearHistory}
+            className="rounded-2xl bg-red-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-red-400 disabled:opacity-50"
+            disabled={allQuestions.length === 0}
           >
             Tüm geçmişi temizle
           </button>
@@ -166,7 +193,7 @@ export default function ExamSimulator() {
             onChange={(event) => setHistoryFilterExam(event.target.value as 'Tümü' | 'YDS' | 'YÖKDİL')}
             className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none"
           >
-            <option value="Tümü">Tümü</option>
+            <option value="Tümü">📚 Tüm Sınavlar</option>
             <option value="YDS">YDS</option>
             <option value="YÖKDİL">YÖKDİL</option>
           </select>
@@ -176,33 +203,57 @@ export default function ExamSimulator() {
             onChange={(event) => setHistoryFilterTopic(event.target.value)}
             className="w-full rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none"
           >
-            <option value="Tümü">Tümü</option>
+            <option value="Tümü">📂 Tüm Kategoriler</option>
             {topics.map((topic) => (
-              <option key={topic.id} value={topic.id}>{topic.label}</option>
+              <option key={topic.id} value={topic.id}>{topic.label} ({topic.range})</option>
             ))}
           </select>
         </div>
 
         <div className="mt-6 space-y-4">
-          {filteredQuestions.length === 0 ? (
+          {allQuestions.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-slate-700 p-4 text-sm text-slate-400">
-              Kaydedilmiş soru bulunamadı.
+              ⚠️ Henüz soru kaydedilmemiş. Üretilen ilk soruyu göreceksiniz.
+            </div>
+          ) : filteredQuestions.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-slate-700 p-4 text-sm text-slate-400">
+              ℹ️ Seçilen filtrelemelere uygun soru bulunamadı. ({allQuestions.length} toplam soru mevcut)
             </div>
           ) : (
             filteredQuestions.map((item) => (
-              <article key={item.id} className="rounded-3xl border border-slate-800 bg-slate-950 p-4">
+              <article
+                key={item.id}
+                onClick={() => setSelectedQuestion(item)}
+                className="rounded-3xl border border-slate-800 bg-slate-950 p-4 cursor-pointer transition hover:border-cyan-600 hover:bg-slate-900"
+              >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">{item.examType} / {item.topicId}</p>
-                    <h4 className="mt-2 font-semibold text-white">{item.question}</h4>
-                    <p className="mt-2 text-sm text-slate-400">Doğru cevap: {item.answer}</p>
+                  <div className="flex-1">
+                    <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">{item.examType} / {item.topicId} • {item.module}</p>
+                    <h4 className="mt-2 font-semibold text-white leading-relaxed line-clamp-2 hover:text-cyan-300 transition">
+                      {item.question}
+                    </h4>
+                    <p className="mt-3 text-sm text-slate-400">
+                      <span className="font-semibold text-slate-300">Doğru Cevap:</span> {item.answer} •
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                        className="ml-4 font-semibold text-cyan-400 hover:text-cyan-300"
+                      >
+                        👁️ Detayı Gör
+                      </button>
+                    </p>
                   </div>
                   <button
                     type="button"
-                    onClick={() => removeQuestion(item.id)}
-                    className="rounded-2xl bg-slate-800 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeQuestion(item.id);
+                    }}
+                    className="flex-shrink-0 rounded-2xl bg-slate-800 px-4 py-2 text-sm text-slate-300 transition hover:bg-red-600 hover:text-white"
                   >
-                    Sil
+                    🗑️ Sil
                   </button>
                 </div>
               </article>
@@ -210,6 +261,12 @@ export default function ExamSimulator() {
           )}
         </div>
       </div>
+
+      {/* Question Detail Modal */}
+      <QuestionDetailModal
+        question={selectedQuestion}
+        onClose={() => setSelectedQuestion(null)}
+      />
     </section>
   );
 }
