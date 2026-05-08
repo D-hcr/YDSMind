@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useWordStore } from '@/store/useWordStore';
 import { useQuestionStore } from '@/store/useQuestionStore';
 import type { WordQuestionKind } from '@/lib/types/question';
+import type { QuestionRecord } from '@/lib/types/question';
+import { QuestionRenderer } from '@/components/QuestionRenderer';
 
 const KINDS: WordQuestionKind[] = [
   'vocabulary_blank',
@@ -15,14 +17,23 @@ const KINDS: WordQuestionKind[] = [
 
 export default function WordQuestionsPage() {
   const { words } = useWordStore();
-  const { addQuestions } = useQuestionStore();
+  const { addQuestions, allQuestions, recordAnswer, getLastGeneratedStems } = useQuestionStore();
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [types, setTypes] = useState<WordQuestionKind[]>(['vocabulary_blank']);
   const [count, setCount] = useState(3);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastGeneratedQuestions, setLastGeneratedQuestions] = useState<QuestionRecord[]>([]);
 
   const chosen = words.filter((w) => selected[w.id]);
+
+  const displayLastSet = useMemo(
+    () =>
+      lastGeneratedQuestions.map(
+        (q) => allQuestions.find((a) => a.id === q.id) ?? q
+      ),
+    [lastGeneratedQuestions, allQuestions]
+  );
 
   const toggleType = (k: WordQuestionKind) => {
     setTypes((t) => (t.includes(k) ? t.filter((x) => x !== k) : [...t, k]));
@@ -43,7 +54,7 @@ export default function WordQuestionsPage() {
           words: chosen,
           questionTypes: types,
           count,
-          previousStems: [],
+          previousStems: getLastGeneratedStems(40),
           recentAnswers: [],
         }),
       });
@@ -59,7 +70,9 @@ export default function WordQuestionsPage() {
       if (!data.success || !Array.isArray(data.data) || data.data.length === 0) {
         throw new Error(data.error ?? 'Kaydedilecek doğrulanmış soru dönmedi.');
       }
-      addQuestions(data.data);
+      const typed = data.data as QuestionRecord[];
+      addQuestions(typed);
+      setLastGeneratedQuestions(typed);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Hata');
     } finally {
@@ -71,7 +84,7 @@ export default function WordQuestionsPage() {
     <section className="space-y-8">
       <div>
         <h1 className="text-3xl font-semibold">Kelimeye Özel Soru Üret</h1>
-        <p className="mt-2 text-slate-400">Seçtiğiniz kelimeler yalnızca bu kelimeleri hedefleyen sorularda kullanılır.</p>
+        <p className="mt-2 text-slate-400">Seçtiğiniz kelimeler yalnızca bu modda soru kökünde hedeflenir.</p>
       </div>
 
       <div className="card max-h-64 space-y-2 overflow-y-auto p-4">
@@ -132,6 +145,19 @@ export default function WordQuestionsPage() {
       {error ? (
         <div role="alert" className="rounded-2xl border border-red-500/60 bg-red-950/25 px-4 py-3 text-sm text-red-200">
           {error}
+        </div>
+      ) : null}
+
+      {displayLastSet.length ? (
+        <div className="space-y-4 pt-6">
+          <h2 className="text-xl font-semibold text-slate-100">Son Üretilen Kelime Soruları</h2>
+          <p className="text-sm text-slate-500">Sayfa yenilenince kaybolabilir; kayıtlar Soru Bankası’nda saklanır.</p>
+          <QuestionRenderer
+            mode="practice"
+            questions={displayLastSet}
+            onAnswer={(id, letter) => recordAnswer(id, letter)}
+            showExplanationAfterAnswer
+          />
         </div>
       ) : null}
     </section>

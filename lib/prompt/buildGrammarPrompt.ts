@@ -1,11 +1,15 @@
-import { STRICT_JSON_RULES, formatPreviousStems } from './sharedRules';
+import { STRICT_JSON_RULES, formatPreviousStems, wordBankInstruction } from './sharedRules';
 
-export function buildGrammarPrompt(params: { wordPool: string; previousStems: string[] }) {
+export function buildGrammarPrompt(params: {
+  wordPool: string;
+  previousStems: string[];
+  useWordBank: boolean;
+}) {
   return `
 Sen YDS/YÖKDİL gramer bölümü soru yazarısın.
 ${STRICT_JSON_RULES}
 GÖREV: Tek cümlede bir boşluk (____) ile gramer kuralını ölçen soru (tense, prep, article, agreement vb.)
-Kelime havuzu: ${params.wordPool || '—'}
+${wordBankInstruction(params.useWordBank, params.wordPool)}
 Önceki kökler:
 ${formatPreviousStems(params.previousStems)}
 ÇIKTI tek JSON nesnesi:

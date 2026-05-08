@@ -8,11 +8,18 @@ import { buildParagraphPrompt } from '@/lib/prompt/buildParagraphPrompt';
 import { buildIrrelevantSentencePrompt } from '@/lib/prompt/buildIrrelevantSentencePrompt';
 import { buildDialoguePrompt } from '@/lib/prompt/buildDialoguePrompt';
 import { buildRestatementPrompt } from '@/lib/prompt/buildRestatementPrompt';
+import { buildExamUniversalPreamble } from '@/lib/prompt/examUniversalPreamble';
 
-type RouterParams = {
+export type RouterParams = {
   categoryId: string;
   wordPool: string;
   previousStems: string[];
+  useWordBank: boolean;
+  /** Sistem sınav akademik kelime havuzu + İngilizce seviye rehberi (zorunlu hedef listesi değil) */
+  examVocabularyHintsBlock?: string;
+  examTypeLabel?: string;
+  difficulty?: string;
+  forbiddenUserBankLemma?: string | null;
   /** okuma batch */
   readingQuestionCount?: number;
   /** YDS ceviri veya karma */
@@ -21,10 +28,11 @@ type RouterParams = {
   kelimeGramerMode?: 'vocabulary' | 'grammar';
 };
 
-export function buildSingleExamPrompt(p: RouterParams): string {
+function buildCategoryInner(p: RouterParams): string {
   const base = {
     wordPool: p.wordPool,
     previousStems: p.previousStems,
+    useWordBank: p.useWordBank,
   };
   const id = p.categoryId;
 
@@ -47,14 +55,29 @@ export function buildSingleExamPrompt(p: RouterParams): string {
       ? buildVocabularyPrompt(base)
       : buildGrammarPrompt(base);
   }
-  /* okuma tek soru üretimi — batch için ayrı */
   if (id === 'okuma') {
     return buildReadingPrompt({
       wordPool: p.wordPool,
       previousStems: p.previousStems,
       numQuestions: Math.min(p.readingQuestionCount ?? 1, 4),
+      useWordBank: p.useWordBank,
     });
   }
 
   return buildVocabularyPrompt(base);
+}
+
+export function buildSingleExamPrompt(p: RouterParams): string {
+  const preamble = buildExamUniversalPreamble({
+    useWordBank: p.useWordBank,
+    examTypeLabel: p.examTypeLabel ?? 'YDS/YÖKDİL',
+    difficulty: p.difficulty,
+    forbiddenUserBankLemma: p.forbiddenUserBankLemma ?? null,
+    previousStems: p.previousStems,
+  });
+  const inner = buildCategoryInner(p);
+  const hints = p.examVocabularyHintsBlock?.trim()
+    ? `\n\n${p.examVocabularyHintsBlock.trim()}`
+    : '';
+  return `${preamble}${hints}\n\n---\n\n${inner}`;
 }

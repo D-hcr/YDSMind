@@ -7,16 +7,29 @@ import { useSessionStore } from '@/store/useSessionStore';
 import { getCategoriesForExam } from '@/lib/types/exam';
 import type { ExamType } from '@/lib/types/exam';
 import { stemOf } from '@/lib/types/question';
+import type { QuestionRecord } from '@/lib/types/question';
+import { QuestionRenderer } from '@/components/QuestionRenderer';
 
 export default function ExamSimulationPage() {
   const { words } = useWordStore();
-  const { addQuestions, allQuestions } = useQuestionStore();
+  const { addQuestions, allQuestions, recordAnswer, getLastGeneratedStems } = useQuestionStore();
   const { selectedExam, selectedCategoryId, setExamSelection } = useSessionStore();
   const [count, setCount] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [useWordBank, setUseWordBank] = useState(false);
+  const [difficulty, setDifficulty] = useState<string>('orta');
+  const [lastGeneratedQuestions, setLastGeneratedQuestions] = useState<QuestionRecord[]>([]);
 
   const categories = useMemo(() => getCategoriesForExam(selectedExam), [selectedExam]);
+
+  const displayLastSet = useMemo(
+    () =>
+      lastGeneratedQuestions.map(
+        (q) => allQuestions.find((a) => a.id === q.id) ?? q
+      ),
+    [lastGeneratedQuestions, allQuestions]
+  );
 
   useEffect(() => {
     const ids = categories.map((c) => c.id);
@@ -37,8 +50,10 @@ export default function ExamSimulationPage() {
           examType: selectedExam,
           categoryId: selectedCategoryId,
           count,
-          words,
-          previousStems: stems,
+          useWordBank,
+          wordBank: useWordBank ? words : undefined,
+          difficulty: difficulty || undefined,
+          previousStems: stems.length ? stems : getLastGeneratedStems(30),
           recentAnswers: [],
         }),
       });
@@ -55,7 +70,9 @@ export default function ExamSimulationPage() {
       if (!data.success || list.length === 0) {
         throw new Error(data.error ?? 'Geçerli soru döndürülmedi.');
       }
-      addQuestions(list);
+      const typed = list as QuestionRecord[];
+      addQuestions(typed);
+      setLastGeneratedQuestions(typed);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Hata');
     } finally {
@@ -111,7 +128,35 @@ export default function ExamSimulationPage() {
           className="mt-1 w-32 rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3"
         />
       </label>
-      <p className="text-sm text-slate-500">Kelime havuzu: {words.length} kayıt (AI bağlamında kullanılır).</p>
+
+      <label className="text-sm text-slate-400">
+        Zorluk
+        <select
+          value={difficulty}
+          onChange={(e) => setDifficulty(e.target.value)}
+          className="mt-1 w-full max-w-xs rounded-2xl border border-slate-700 bg-slate-950 px-4 py-3"
+        >
+          <option value="kolay">Kolay</option>
+          <option value="orta">Orta</option>
+          <option value="zor">Zor</option>
+        </select>
+      </label>
+
+      <label className="flex cursor-pointer items-center gap-3 text-sm text-slate-300">
+        <input
+          type="checkbox"
+          checked={useWordBank}
+          onChange={(e) => setUseWordBank(e.target.checked)}
+          className="h-4 w-4 rounded border-slate-600"
+        />
+        Kelime bankamdaki kelimeleri kullan
+      </label>
+      <p className="max-w-xl text-sm text-slate-500">
+        Checkbox kapalıyken sorular yalnızca uygulamanın{' '}
+        <strong className="font-medium text-slate-400">Sınav Akademik Kelime Havuzu</strong> üzerinden yönlendirilir; kelime bankanızdaki{' '}
+        {words.length} kayıt modele iletilmez. Checkbox açıkken aynı akademik havuzun yanı sıra bankanızdan az sayıda ek ipucu da
+        seçilebilir (ÖSYM sınav çıkmışı veya sızdırılmış içerik değildir).
+      </p>
       <button
         type="button"
         disabled={loading}
@@ -123,6 +168,19 @@ export default function ExamSimulationPage() {
       {error ? (
         <div role="alert" className="rounded-2xl border border-red-500/60 bg-red-950/25 px-4 py-3 text-sm text-red-200">
           {error}
+        </div>
+      ) : null}
+
+      {displayLastSet.length ? (
+        <div className="space-y-4 pt-6">
+          <h2 className="text-xl font-semibold text-slate-100">Son Üretilen Soru Seti</h2>
+          <p className="text-sm text-slate-500">Bu liste sayfa yenilenince kaybolabilir; kalıcı kopyalar Soru Bankası’nda.</p>
+          <QuestionRenderer
+            mode="practice"
+            questions={displayLastSet}
+            onAnswer={(id, letter) => recordAnswer(id, letter)}
+            showExplanationAfterAnswer
+          />
         </div>
       ) : null}
     </section>

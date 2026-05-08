@@ -9,6 +9,8 @@ export type WordQuestionKind =
 
 export type QuestionSource = 'word_specific' | 'exam_format' | 'quiz_local' | 'context' | 'legacy';
 
+export type QuestionVocabularySource = 'exam_pool' | 'user_bank' | 'model_other';
+
 export type QuestionRecord = {
   id: string;
   source: QuestionSource;
@@ -26,6 +28,10 @@ export type QuestionRecord = {
   answer: 'A' | 'B' | 'C' | 'D' | 'E';
   explanation_tr: string;
   target_words: string[];
+  /** Modelin hedeflediği kelimelerin havuz / banka eşlemesi (mümkün olduğunca) */
+  sourceVocabulary?: Array<{ lemma: string; source: QuestionVocabularySource }>;
+  /** Üretim kaynağı hakkında kısa uyarı */
+  vocabularySourceNote?: string;
   difficulty?: string;
   category?: string;
   questionType?: string;

@@ -1,9 +1,10 @@
-import { STRICT_JSON_RULES, formatPreviousStems } from './sharedRules';
+import { STRICT_JSON_RULES, formatPreviousStems, wordBankInstruction } from './sharedRules';
 
 export function buildTranslationPrompt(params: {
   direction: 'en_tr' | 'tr_en';
   wordPool: string;
   previousStems: string[];
+  useWordBank: boolean;
 }) {
   const dir =
     params.direction === 'en_tr'
@@ -13,7 +14,7 @@ export function buildTranslationPrompt(params: {
 Sen çeviri tarzı soru yazarısın.
 ${STRICT_JSON_RULES}
 GÖREV: ${dir}
-Kelime havuzu: ${params.wordPool || '—'}
+${wordBankInstruction(params.useWordBank, params.wordPool)}
 Önceki kökler:
 ${formatPreviousStems(params.previousStems)}
 ÇIKTI tek JSON:

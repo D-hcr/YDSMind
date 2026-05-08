@@ -24,11 +24,11 @@ ${STRICT_JSON_RULES}
 
 GÖREV: Aşağıdaki kelimelerden YALNIZCA bu kelimeleri hedefleyen ${params.count} adet soru üret.
 Soru türleri (karışık kullanılabilir): ${kinds}
-- vocabulary_blank: cümlede boşluk, doğru kelimeyi seçme
-- synonym: eş anlamlı seç
-- collocation: doğru eşleşme / kalıp
-- sentence_completion: akademik cümle tamamlama
-- mini_cloze: kısa paragrafta tek boşluk
+
+ÇEŞİTLİLİK (ZORUNLU):
+- Aynı hedef kelime birden çok soruda kullanılacaksa, her biri FARKLI collocation / alan / çerçeve ile gelmeli (ör. "exposure" için: occupational exposure, exposure to radiation, media exposure, environmental exposure, prolonged exposure gibi).
+- Aynı soru kalıbını, aynı cümle iskeletini veya aynı "boşluk öncesi + boşluk sonrası" şablonunu tekrarlama; her öğe bağımsız bir görev gibi hissettirsin.
+- Önceki köklerle anlamca veya yüzeysel yapıda kopya üretme.
 
 TARGET WORDS listesi:
 ${wtxt}

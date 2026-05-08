@@ -17,3 +17,11 @@ export function formatPreviousStems(stems: string[]) {
     .map((s, i) => `${i + 1}. ${s.slice(0, 160)}`)
     .join('\n');
 }
+
+/** Sınav modunda kelime bankası açık/kapalı metinleri */
+export function wordBankInstruction(useWordBank: boolean, wordPool: string): string {
+  if (!useWordBank) {
+    return 'Kelime bankası: KAPALI — tamamen bağımsız akademik İngilizce üret; öğrencinin kişisel kelime listesi yok ve promptta da yok (kullanma).';
+  }
+  return `İsteğe bağlı öğrenci kelime bankası (seyrek, doğal kullanım; her soruyu aynı kelimeye kilitleme): ${wordPool || '(boş)'}`;
+}

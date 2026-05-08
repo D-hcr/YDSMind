@@ -1,12 +1,16 @@
-import { STRICT_JSON_RULES, formatPreviousStems } from './sharedRules';
+import { STRICT_JSON_RULES, formatPreviousStems, wordBankInstruction } from './sharedRules';
 
-export function buildIrrelevantSentencePrompt(params: { wordPool: string; previousStems: string[] }) {
+export function buildIrrelevantSentencePrompt(params: {
+  wordPool: string;
+  previousStems: string[];
+  useWordBank: boolean;
+}) {
   return `
 Sen “anlam bozan cümle” tipi sorular üretirsin.
 ${STRICT_JSON_RULES}
 GÖREV: 5 numaralı cümleden oluşan kısa paragrafta paragrafın konusu ve akışıyla uyumsuz TEK cümleyi buldur.
 Format: stem içinde (1)-(5) cümleler listelensin; soru "Hangi cümle anlam akışını bozmaktadır?"
-Kelime havuzu: ${params.wordPool || '—'}
+${wordBankInstruction(params.useWordBank, params.wordPool)}
 Önceki kökler:
 ${formatPreviousStems(params.previousStems)}
 Doğru şık: uyumsuz cümle numarasına karşılık gelen harf (A-E) — her şıkta bir cümle numarası etiketle.

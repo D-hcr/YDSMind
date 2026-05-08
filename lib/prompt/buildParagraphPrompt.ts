@@ -1,11 +1,15 @@
-import { STRICT_JSON_RULES, formatPreviousStems } from './sharedRules';
+import { STRICT_JSON_RULES, formatPreviousStems, wordBankInstruction } from './sharedRules';
 
-export function buildParagraphPrompt(params: { wordPool: string; previousStems: string[] }) {
+export function buildParagraphPrompt(params: {
+  wordPool: string;
+  previousStems: string[];
+  useWordBank: boolean;
+}) {
   return `
 Sen paragraf tamamlama soruları yazarsın.
 ${STRICT_JSON_RULES}
 GÖREV: 4-5 cümlelik paragraf ver; bir cümle eksik. Aşağıda verilen şıklardan yalnızca biri mantık ve bağlaç akışına uymalı.
-Kelime havuzu: ${params.wordPool || '—'}
+${wordBankInstruction(params.useWordBank, params.wordPool)}
 Önceki kökler:
 ${formatPreviousStems(params.previousStems)}
 ÇIKTI tek JSON:

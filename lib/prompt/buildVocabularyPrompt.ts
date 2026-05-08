@@ -1,14 +1,15 @@
-import { STRICT_JSON_RULES, formatPreviousStems } from './sharedRules';
+import { STRICT_JSON_RULES, formatPreviousStems, wordBankInstruction } from './sharedRules';
 
 export function buildVocabularyPrompt(params: {
   wordPool: string;
   previousStems: string[];
+  useWordBank: boolean;
 }) {
   return `
 Sen YDS Kelime (1-6) tarzı soru yazarısın.
 ${STRICT_JSON_RULES}
 GÖREV: Tek bir cümlede tek boşluk (____) olan ve doğru akademik kelimenin seçildiği soru üret.
-Kelime havuzu (bağlam uygunsa kullan): ${params.wordPool || '—'}
+${wordBankInstruction(params.useWordBank, params.wordPool)}
 Önceki kökler: 
 ${formatPreviousStems(params.previousStems)}
 ÇIKTI (tek JSON nesnesi):

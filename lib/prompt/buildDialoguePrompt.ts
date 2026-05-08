@@ -1,11 +1,15 @@
-import { STRICT_JSON_RULES, formatPreviousStems } from './sharedRules';
+import { STRICT_JSON_RULES, formatPreviousStems, wordBankInstruction } from './sharedRules';
 
-export function buildDialoguePrompt(params: { wordPool: string; previousStems: string[] }) {
+export function buildDialoguePrompt(params: {
+  wordPool: string;
+  previousStems: string[];
+  useWordBank: boolean;
+}) {
   return `
 Sen diyalog tamamlama sorusu yazarsın.
 ${STRICT_JSON_RULES}
 GÖREV: İki kişinin kısa akademik diyaloğunda eksik bir repliği tamamlat (5 seçenek).
-Kelime havuzu: ${params.wordPool || '—'}
+${wordBankInstruction(params.useWordBank, params.wordPool)}
 Önceki kökler:
 ${formatPreviousStems(params.previousStems)}
 ÇIKTI tek JSON:

@@ -1,11 +1,15 @@
-import { STRICT_JSON_RULES, formatPreviousStems } from './sharedRules';
+import { STRICT_JSON_RULES, formatPreviousStems, wordBankInstruction } from './sharedRules';
 
-export function buildSentenceCompletionPrompt(params: { wordPool: string; previousStems: string[] }) {
+export function buildSentenceCompletionPrompt(params: {
+  wordPool: string;
+  previousStems: string[];
+  useWordBank: boolean;
+}) {
   return `
 Sen cümle tamamlama (İngilizce) soru yazarısın.
 ${STRICT_JSON_RULES}
 GÖREV: Yarım bırakılmış akademik cümleyi mantıksal ve üslup açısından en iyi tamamlayan seçeneği buldur.
-Kelime havuzu: ${params.wordPool || '—'}
+${wordBankInstruction(params.useWordBank, params.wordPool)}
 Önceki kökler:
 ${formatPreviousStems(params.previousStems)}
 ÇIKTI tek JSON:
