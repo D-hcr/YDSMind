@@ -1,13 +1,13 @@
 export const buildContextPrompt = (params: {
-  words: Array<{ english: string; turkish: string }>;
+  words: Array<{ english?: string; turkish?: string; word?: string; meaning_tr?: string }>;
 }) => {
   const { words } = params;
 
   const wordList = words
-    .map((w) => `${w.english} (${w.turkish})`)
+    .map((w) => `${w.english ?? w.word ?? ''} (${w.turkish ?? w.meaning_tr ?? ''})`)
     .join(", ");
 
-  const targetWords = words.map((w) => w.english).join(", ");
+  const targetWords = words.map((w) => w.english ?? w.word ?? '').filter(Boolean).join(", ");
 
   return `You are a vocabulary context learning assistant.
 

@@ -2,11 +2,19 @@
 
 import { useState } from 'react';
 import { useWordStore } from '../store/useWordStore';
+import { useQuestionStore } from '@/store/useQuestionStore';
 
 export default function ContextLearning() {
-  const { words, addQuestion } = useWordStore();
+  const { words } = useWordStore();
+  const { addQuestions } = useQuestionStore();
   const [selectedId, setSelectedId] = useState<string>('');
-  const [quiz, setQuiz] = useState<{ question: string; options: { A: string; B: string; C: string; D: string; E: string }; answer: string; explanation?: string; targetWord?: string } | null>(null);
+  const [quiz, setQuiz] = useState<{
+    question: string;
+    options: { A: string; B: string; C: string; D: string; E: string };
+    answer: string;
+    explanation?: string;
+    targetWord?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,7 +32,7 @@ export default function ContextLearning() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           module: 'context',
-          words: [selectedWord],
+          words: [{ english: selectedWord.word, turkish: selectedWord.meaning_tr }],
         }),
       });
 
@@ -37,26 +45,35 @@ export default function ContextLearning() {
         throw new Error('API geçersiz bir response döndürdü');
       }
 
-      const parsed = data.data as { question: string; options: { A: string; B: string; C: string; D: string; E: string }; answer: string; explanation?: string; targetWord?: string };
+      const parsed = data.data as {
+        question: string;
+        options: { A: string; B: string; C: string; D: string; E: string };
+        answer: string;
+        explanation?: string;
+        targetWord?: string;
+      };
 
       if (!parsed.question || !parsed.options || !parsed.answer) {
         throw new Error('AI yanıtında gerekli alanlar eksik');
       }
 
       setQuiz(parsed);
-      addQuestion({
-        id: `q_${Date.now()}`,
-        module: 'context',
-        examType: 'YDS',
-        topicId: 'cümle' as any,
-        question: parsed.question,
-        options: parsed.options,
-        answer: parsed.answer as 'A' | 'B' | 'C' | 'D' | 'E',
-        explanation: parsed.explanation ?? 'Açıklama sağlanmadı.',
-        isAnswered: false,
-        createdAt: new Date().toISOString(),
-        targetWord: parsed.targetWord,
-      });
+      addQuestions([
+        {
+          id: `q_${Date.now()}`,
+          source: 'context',
+          categoryId: 'context',
+          stem: parsed.question,
+          question: parsed.question,
+          options: parsed.options,
+          answer: parsed.answer as 'A' | 'B' | 'C' | 'D' | 'E',
+          explanation_tr: parsed.explanation ?? 'Açıklama sağlanmadı.',
+          explanation: parsed.explanation ?? 'Açıklama sağlanmadı.',
+          target_words: parsed.targetWord ? [parsed.targetWord] : [],
+          createdAt: new Date().toISOString(),
+          isAnswered: false,
+        },
+      ]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Bilinmeyen hata.');
     } finally {
@@ -81,7 +98,9 @@ export default function ContextLearning() {
           >
             <option value="">-- Kelime seçiniz --</option>
             {words.map((word) => (
-              <option key={word.id} value={word.id}>{word.english} — {word.turkish}</option>
+              <option key={word.id} value={word.id}>
+                {word.word} — {word.meaning_tr}
+              </option>
             ))}
           </select>
         </div>
@@ -114,7 +133,9 @@ export default function ContextLearning() {
               </div>
             ))}
           </div>
-          <p className="mt-4 text-sm text-slate-300"><span className="font-semibold">Doğru:</span> {quiz.answer}</p>
+          <p className="mt-4 text-sm text-slate-300">
+            <span className="font-semibold">Doğru:</span> {quiz.answer}
+          </p>
         </article>
       ) : null}
     </section>

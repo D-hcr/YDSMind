@@ -9,11 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.5.1",
+    "@types/pdfmake": "^0.3.2",
     "next": "14.2.5",
+    "openai": "^4.10.0",
+    "pdfmake": "^0.3.8",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "zustand": "^4.4.3",
-    "openai": "^4.10.0"
+    "zustand": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^20.14.2",

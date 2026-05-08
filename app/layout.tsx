@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import '../styles/globals.css';
+import { MigrationGate } from '@/components/MigrationGate';
 
 export const metadata: Metadata = {
   title: 'YDSMind',
@@ -9,7 +10,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="tr">
-      <body>{children}</body>
+      <body>
+        <MigrationGate>{children}</MigrationGate>
+      </body>
     </html>
   );
 }

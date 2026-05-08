@@ -1,4 +1,4 @@
-import { QuestionTopic } from "@/lib/types";
+import type { QuestionTopic } from "@/lib/types";
 
 export const topicInstructions: Record<QuestionTopic, string> = {
   kelime: `**VOCABULARY (Kelime)** - OSYM YDS/YÖKDİL Standards
@@ -85,4 +85,11 @@ Paragraph (4-5 sentences) where ONE sentence doesn't fit the topic/flow.
 - Sentences are numbered A, B, C, D, E
 - 4 sentences cohere, 1 breaks the logical flow
 Format: 5-sentence paragraph, ask "Which sentence does NOT fit?" or "Which is anomalous?"`,
+  cumle: `**SENTENCE COMPLETION (Cümle Tamamlama)** - OSYM YDS/YÖKDİL Standards
+Incomplete sentence that must be completed logically.
+- Tests: word relationships, logical sequencing, stylistic appropriateness
+- Options are complete phrases or clauses (not single words usually)
+- Sentence logic matters - right answer "sounds" natural
+Example: "The director decided to cancel the event because..."
+Options: A) she wanted to attend. B) the budget was insufficient. C) the weather was perfect.`,
 };

@@ -101,7 +101,8 @@ export async function POST(req: Request) {
     // DUPLICATE PREVENTION (Exam Module Only)
     // ============================================
     if (module === 'exam' && previousQuestions && previousQuestions.length > 0) {
-      const isDuplicate = isDuplicateQuestion(parsed.question, previousQuestions, 0.8);
+      const qText = parsed.question ?? parsed.stem ?? '';
+      const isDuplicate = isDuplicateQuestion(qText, previousQuestions, 0.8);
       if (isDuplicate) {
         console.warn('⚠️ Duplicate detected! Marking warning.');
         parsed._isDuplicate = true;

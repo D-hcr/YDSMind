@@ -5,22 +5,28 @@ import { topicInstructions } from "./topicInstructions";
 export const buildExamPrompt = (params: {
   examType: ExamType;
   topicId: QuestionTopic;
-  words?: Array<{ english: string; turkish: string }>;
+  words?: Array<{ english?: string; turkish?: string; word?: string; meaning_tr?: string }>;
   previousQuestions?: string[];
 }) => {
   const { examType, topicId, words = [], previousQuestions = [] } = params;
 
   const topic = examTopics[examType].find((t) => t.id === topicId);
-  const instructions = topicInstructions[topicId];
+  const instructions = topicInstructions[topicId] ?? topicInstructions['kelime'];
 
   const wordPool =
     words.length > 0
-      ? words.map((w) => `${w.english} (${w.turkish})`).join(", ")
-      : "User may not have provided vocabulary.";
+      ? words
+          .map((w) => {
+            const en = w.english ?? w.word ?? '';
+            const tr = w.turkish ?? w.meaning_tr ?? '';
+            return `${en} (${tr})`;
+          })
+          .join(', ')
+      : 'User may not have provided vocabulary.';
 
   return `You are an OSYM (Turkish exam) English question writer.
 
-📋 EXAM: ${examType} | CATEGORY: ${topic?.label} (${topic?.range})
+📋 EXAM: ${examType} | CATEGORY: ${topic?.label ?? topicId} (${topic?.range ?? ''})
 
 ⚠️ RULES:
 1. Write ONE ORIGINAL question (NOT similar to previous)
